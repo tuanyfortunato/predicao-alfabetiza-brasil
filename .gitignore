@@ -1,0 +1,22 @@
+# credenciais
+credentials/
+*.json
+!data/**/*.json
+!reports/*.json
+.env
+
+# ambiente
+.venv*/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ipynb_checkpoints/
+
+# dados pesados e gerados (Gold/Silver leves e external são versionados)
+data/silver/alunos/
+data/processed/
+models/
+
+# SO / IDE
+.DS_Store
+.vscode/
