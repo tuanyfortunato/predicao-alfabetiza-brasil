@@ -20,3 +20,5 @@ models/
 # SO / IDE
 .DS_Store
 .vscode/
+CLAUDE.md
+docs/details
