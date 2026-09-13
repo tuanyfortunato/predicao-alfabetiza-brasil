@@ -33,5 +33,15 @@
     "linhas": 5571,
     "bytes_processados": 511668,
     "extraido_em": "2026-09-13T22:43:50+00:00"
+  },
+  "bolsa_familia_municipio": {
+    "linhas": 11142,
+    "anos": [
+      2023,
+      2024
+    ],
+    "mes": 12,
+    "fonte": "dados.gov.br - MDS/SAGICAD, Bolsa Família - Benefícios Básicos e Variáveis (download manual)",
+    "extraido_em": "2026-09-13T22:53:24+00:00"
   }
 }

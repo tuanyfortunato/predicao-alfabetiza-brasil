@@ -17,8 +17,9 @@ Em andamento. Até agora:
 - Esqueleto do repositório, configuração (`src/config.py`) e fixtures de teste.
 - Gold (5 tabelas) e Silver leve (metas, resultados por município) trazidas da Fase 2 e commitadas.
 - Silver de alunos (3,87 mi de linhas, ~124 MB) presente localmente, fora do Git.
+- Oito fontes externas por município em `data/external/` (IBGE, INEP, Bolsa Família), com scripts de extração testados.
 
-Ainda não feito: script de extração das fontes externas do BigQuery (`data/external/` está vazio), feature store, pipeline de treino, avaliação, interpretabilidade e os notebooks. O plano completo, tarefa por tarefa, está em [`docs/plano-implementacao.md`](docs/plano-implementacao.md); a especificação original (o que o enunciado pede) está em [`docs/planejamento-fase3.md`](docs/planejamento-fase3.md).
+Ainda não feito: feature store, pipeline de treino, avaliação, interpretabilidade e os notebooks. O plano completo, tarefa por tarefa, está em [`docs/plano-implementacao.md`](docs/plano-implementacao.md); a especificação original (o que o enunciado pede) está em [`docs/planejamento-fase3.md`](docs/planejamento-fase3.md).
 
 ## Como rodar
 
@@ -32,7 +33,18 @@ cp .env.example .env           # preencher se for reextrair dados externos
 pytest
 ```
 
-Os dados de entrada (`data/gold/`, `data/silver/metas.parquet`, `data/silver/resultados_municipio.parquet`) já vêm no repositório. A Silver de alunos e as fontes externas ainda dependem dos scripts de extração (em construção) ou de acesso ao lake da Fase 2.
+Os dados leves já vêm no repositório: Gold da Fase 2 (`data/gold/`), Silver de metas e resultados (`data/silver/*.parquet`) e as oito fontes externas agregadas por município (`data/external/`). Só a Silver de alunos (124 MB) precisa ser copiada do lake da Fase 2:
+
+```bash
+python scripts/baixar_dados.py            # precisa de FASE2_LAKE_PATH no .env
+```
+
+Para reextrair as externas (só se quiser atualizar; exige credencial GCP e os CSVs do MDS):
+
+```bash
+python scripts/extrair_externas.py        # 7 fontes da Base dos Dados (BigQuery)
+python scripts/baixar_bolsa_familia.py    # Bolsa Família, dezembro de cada ano
+```
 
 ## Estrutura
 
