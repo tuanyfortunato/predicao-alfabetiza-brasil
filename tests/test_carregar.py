@@ -20,7 +20,7 @@ def test_carregar_alunos_filtra_ano_e_presentes_com_nota(lake_tmp):
     ])
     df = carregar.carregar_alunos(ano=2024)
     assert len(df) == 1
-    assert df["ano"].dtype.kind == "i"
+    assert str(df["ano"].dtype) == "int64"
     assert df["ano"].iloc[0] == 2024
     assert df.index.tolist() == [0]
 

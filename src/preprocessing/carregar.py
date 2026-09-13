@@ -23,7 +23,7 @@ def carregar_alunos(ano: int | None = None, apenas_com_nota: bool = True) -> pd.
     filtros = [("ano", "==", ano)] if ano is not None else None
     df = pd.read_parquet(config.SILVER / "alunos", filters=filtros)
     # a partição vem como category; int evita surpresa em groupby e merge
-    df["ano"] = df["ano"].astype(int)
+    df["ano"] = df["ano"].astype("int64")
     if apenas_com_nota:
         df = df[df["presente"] & ~df["sem_nota"]]
     return df.reset_index(drop=True)
