@@ -1,0 +1,37 @@
+{
+  "censo2022_municipio": {
+    "linhas": 5570,
+    "bytes_processados": 0,
+    "extraido_em": "2026-09-13T22:43:27+00:00"
+  },
+  "pib_municipio": {
+    "linhas": 27850,
+    "bytes_processados": 0,
+    "extraido_em": "2026-09-13T22:43:32+00:00"
+  },
+  "populacao_municipio": {
+    "linhas": 38990,
+    "bytes_processados": 4773194,
+    "extraido_em": "2026-09-13T22:43:36+00:00"
+  },
+  "ideb_municipio": {
+    "linhas": 22263,
+    "bytes_processados": 33770521,
+    "extraido_em": "2026-09-13T22:43:40+00:00"
+  },
+  "indicadores_municipio": {
+    "linhas": 11140,
+    "bytes_processados": 38012914,
+    "extraido_em": "2026-09-13T22:43:44+00:00"
+  },
+  "censo_escolar_municipio": {
+    "linhas": 11140,
+    "bytes_processados": 51710100,
+    "extraido_em": "2026-09-13T22:43:48+00:00"
+  },
+  "diretorios_municipio": {
+    "linhas": 5571,
+    "bytes_processados": 511668,
+    "extraido_em": "2026-09-13T22:43:50+00:00"
+  }
+}
