@@ -75,7 +75,7 @@ CONSULTAS = {
                    ied_ef_anos_iniciais_nivel_1 AS ied_ai_nivel1,
                    ird_baixa_regularidade AS ird_baixa
             FROM `{BD}.br_inep_indicadores_educacionais.municipio`
-            WHERE ano >= {ANO_MIN} AND localizacao = 'Total' AND rede = 'Pública'
+            WHERE ano >= {ANO_MIN} AND LOWER(localizacao) = 'total' AND LOWER(rede) IN ('publica', 'pública')
         """,
     },
     "censo_escolar_municipio": {
