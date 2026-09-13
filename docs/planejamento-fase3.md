@@ -1,9 +1,9 @@
 # Planejamento — Tech Challenge Fase 3
 ## Predição e Inteligência Analítica para Alfabetização no Brasil
 
-> Especificação da entrega da Fase 3, elaborada a partir do enunciado oficial (PDF `[IAST] - Tech Challenge - Fase 3.pdf`, 9 páginas) e do estado atual do repositório `pipeline-dados-alfabetiza-brasil` (Fase 2, mergeada em `main`). Documento interno, não versionado (`docs/teste/` está no `.gitignore`).
+> Especificação da entrega da Fase 3, elaborada a partir do enunciado oficial (PDF `[IAST] - Tech Challenge - Fase 3.pdf`, 9 páginas) e do estado atual do repositório `pipeline-dados-alfabetiza-brasil` (Fase 2, mergeada em `main`). Documento interno, versionado neste repositório (`docs/` inteiro é versionado — ver adendo do `plano-implementacao.md`, item 9).
 >
-> Projeto individual. Continua no **mesmo repositório** da Fase 2: a Gold construída lá é, por exigência do enunciado, a base desta fase.
+> Projeto individual. **Decisão revista após esta especificação:** o projeto passou a viver em um **repositório novo**, `predicao-alfabetiza-brasil`, e não no repositório da Fase 2. A Fase 2 não é alterada; este repo **consome** a Gold e a Silver dela (commitadas/copiadas) como dado de entrada. Onde este documento abaixo ainda descreve "mesmo repositório" ou crescimento in-place sobre a Fase 2 (seções 2.2, 4.2, 4.7 e 6), vale o `docs/plano-implementacao.md` — ver seu "Adendo à especificação", item 1.
 
 ---
 
@@ -62,6 +62,8 @@ Não há exigência de nuvem nesta fase. A AWS da Fase 2 continua como evidênci
 | `docs/dicionario_dados_gold.md` | ganha a seção da `base_modelagem_aluno` e das tabelas de enriquecimento |
 
 ### 2.2 O que muda no repositório
+
+> **Superada pela decisão do repositório novo** (ver nota no topo do documento). Esta seção descrevia crescimento in-place sobre o repositório da Fase 2; vale a "Estrutura de arquivos" do `plano-implementacao.md`, que já nasce como repo próprio.
 
 - Novas pastas exigidas pelo enunciado: `src/preprocessing`, `src/modeling`, `src/evaluation`, `src/visualization`, `reports/`, `images/`. As pastas numeradas da Fase 2 (`01_bronze`, `02_silver`, `03_gold`) permanecem.
 - `requirements.txt` ganha `scikit-learn`, `shap`, `seaborn`, `joblib` (versões pinadas).
@@ -143,6 +145,8 @@ Silver alunos + Gold (t-1) + externas por município
 Prioridade: **A** é o obrigatório e recebe o grosso do esforço. **B** e **clusters** existem para responder as perguntas de negócio e reusam a mesma feature store e as mesmas utilidades; cada um cabe num notebook curto.
 
 ### 4.2 Enriquecimento externo: já está no BigQuery da Fase 2
+
+> **Superada pela decisão do repositório novo:** a implementação não reaproveita `ingestao_batch_bigquery.py` da Fase 2 via `ENTITIES` — é um script próprio deste repo, `scripts/extrair_externas.py` (Task 4 do `plano-implementacao.md`), que grava direto em `data/external/` (commitado). O levantamento de fontes abaixo continua valendo como sondagem; o "como" mudou.
 
 Sondagem feita em setembro/2026 no projeto `basedosdados` (metadados apenas). O que existe, o que serve e o custo de leitura:
 
@@ -231,7 +235,9 @@ modelo = Pipeline([("prep", prep), ("clf", HistGradientBoostingClassifier(random
 
 ### 4.7 Onde roda
 
-Treino e notebooks rodam **local** (`.venv`, Python 3.11). A nova tabela Gold é gerada por `src/03_gold/` e, se houver sessão do Learner Lab disponível, publicada na esteira existente (S3/Athena) apenas para evidenciar que a base de modelagem sai da mesma pipeline. Nada de treino na AWS: credencial de 4h e sem ganho para o volume.
+Treino e notebooks rodam **local** (`.venv`, Python 3.11). Nada de treino na AWS: credencial de 4h e sem ganho para o volume.
+
+> **Ajustada pela decisão do repositório novo:** não existe `src/03_gold/` neste repo; a feature store (`base_modelagem_aluno`/`base_modelagem_municipio`) nasce em `src/preprocessing/feature_store.py` e vive em `data/processed/` (fora do Git). Publicar essas tabelas na esteira AWS da Fase 2 fica só como opcional oportunista (seção 10, item 6), não como fluxo padrão.
 
 ---
 
@@ -248,6 +254,8 @@ Treino e notebooks rodam **local** (`.venv`, Python 3.11). A nova tabela Gold é
 ---
 
 ## 6. Estrutura do repositório (proposta)
+
+> **Superada pela decisão do repositório novo:** a árvore abaixo mapeava a estrutura mínima do PDF sobre o repositório *existente* da Fase 2 ("sem apagar nada da Fase 2"). Como o projeto passou a viver em `predicao-alfabetiza-brasil` (repo próprio, sem as pastas `01_bronze`/`02_silver`/`03_gold`/`terraform`/`.github` da Fase 2), vale a "Estrutura de arquivos" do `plano-implementacao.md`.
 
 Mapeia a estrutura mínima do PDF sobre o que já existe, sem apagar nada da Fase 2:
 
@@ -353,7 +361,7 @@ Slides saem das figuras de `images/`; tom executivo, sem código.
 
 ## 10. Decisões em aberto
 
-1. **Onde fica o texto da Fase 2 no README.** Recomendação: mover o README atual, íntegro, para `docs/pipeline_fase2.md` e escrever um README novo para a Fase 3, com um bloco curto "De onde vem o dado" apontando para ele. Alternativa: um único README com as duas fases (fica longo; a avaliação da Fase 3 usa as 11 seções, e a Fase 2 já foi avaliada).
+1. ~~**Onde fica o texto da Fase 2 no README.**~~ **Resolvida pela decisão do repositório novo:** não há texto da Fase 2 para mover — o README deste repo já nasce só com a Fase 3 e um link para `pipeline-dados-alfabetiza-brasil`.
 2. **`caderno` como feature.** Por padrão fora (artefato de instrumento). Vale um teste na EDA: se a taxa varia por caderno, é sinal de não equivalência dos cadernos, o que é achado, não feature.
 3. **`peso_aluno` no treino.** Reportar métricas ponderadas é obrigatório; treinar com `sample_weight` é opcional. Recomendação: treinar sem, avaliar com e sem, e comentar.
 4. **FUNDEB.** Entra só se o mapeamento de `codigo_indicador` for direto; senão fica em "evoluções futuras".
