@@ -1,8 +1,8 @@
 """Copia a Gold e a Silver do pipeline da Fase 2 para data/.
 
 Uso:
-    python scripts/baixar_dados.py                    # usa FASE2_LAKE_PATH do .env
-    python scripts/baixar_dados.py --origem D:/lake   # pasta data/ do pipeline
+    python -m scripts.baixar_dados                    # usa FASE2_LAKE_PATH do .env
+    python -m scripts.baixar_dados --origem D:/lake    # pasta data/ do pipeline
 """
 import argparse
 import os

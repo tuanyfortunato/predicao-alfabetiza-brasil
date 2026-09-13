@@ -42,4 +42,14 @@ def test_processar_falha_claro_sem_dezembro():
 def test_processar_descarta_municipio_sem_nenhum_valor_e_mantem_inteiros():
     out = processar(_bruto(), 2023, mapa_codigos(_diretorios()))
     assert 5101837 not in set(out.id_municipio)
-    assert all(str(out[c].dtype) == "int64" for c in COLUNAS.values())
+    assert all(str(out[c].dtype) == "Int64" for c in COLUNAS.values())
+
+
+def test_processar_mantem_municipio_com_valor_parcialmente_nulo():
+    bruto = _bruto()
+    # Alta Floresta D'Oeste (110001) em dezembro/2023: zera só um dos três indicadores
+    bruto.loc[(bruto.codigo_ibge == 110001) & (bruto.anomes_s == 202312), "qtd_ben_bpi"] = None
+    out = processar(bruto, 2023, mapa_codigos(_diretorios()))
+    linha = out[out.id_municipio == 1100015].iloc[0]
+    assert linha.pessoas_brc == 10 and linha.familias_bf == 3
+    assert pd.isna(linha.ben_primeira_infancia)

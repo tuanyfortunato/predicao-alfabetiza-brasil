@@ -19,7 +19,7 @@ Em andamento. Até agora:
 - Silver de alunos (3,87 mi de linhas, ~124 MB) presente localmente, fora do Git.
 - Oito fontes externas por município em `data/external/` (IBGE, INEP, Bolsa Família), com scripts de extração testados.
 
-Ainda não feito: feature store, pipeline de treino, avaliação, interpretabilidade e os notebooks. O plano completo, tarefa por tarefa, está em [`docs/plano-implementacao.md`](docs/plano-implementacao.md); a especificação original (o que o enunciado pede) está em [`docs/planejamento-fase3.md`](docs/planejamento-fase3.md).
+Ainda não feito: feature store, pipeline de treino, avaliação, interpretabilidade e os notebooks (planejamento e especificação ficam fora do repositório público).
 
 ## Como rodar
 
@@ -58,9 +58,8 @@ src/
 data/
 ├── gold/                # camada Gold da Fase 2 (commitada)
 ├── silver/              # metas e resultados por município (commitados); alunos fica fora do Git
-├── external/             # fontes IBGE/INEP extraídas do BigQuery (a implementar)
+├── external/             # fontes IBGE/INEP/Bolsa Família extraídas do BigQuery e do MDS (commitadas)
 └── processed/            # feature store gerada localmente, fora do Git
-docs/                    # especificação e plano de implementação
 notebooks/               # EDA e modelagem
 ```
 
@@ -70,5 +69,3 @@ notebooks/               # EDA e modelagem
 - **Pipeline sklearn end-to-end** (imputação, encoding e modelo num único `Pipeline`): evita vazamento de estatísticas do teste para o treino e serializa o pré-processamento junto do modelo.
 - **Split por escola**, não por aluno: alunos da mesma escola compartilham contexto; deixá-los em lados diferentes do split infla a métrica de validação artificialmente.
 - **Regime "produção" vs "diagnóstico"**: features de contexto do ano anterior (o que dá para saber antes da prova) separadas de features do mesmo ano com leave-one-out (o que a escola explica, usado só para interpretação).
-
-Detalhes de cada decisão — inclusive o inventário de vazamentos de dados tratados e por quê — estão documentados em `docs/planejamento-fase3.md` e `docs/plano-implementacao.md`.

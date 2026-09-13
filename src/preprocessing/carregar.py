@@ -15,7 +15,10 @@ def carregar_metas() -> pd.DataFrame:
 def carregar_externa(nome: str) -> pd.DataFrame:
     caminho = config.EXTERNAL / f"{nome}.parquet"
     if not caminho.exists():
-        raise FileNotFoundError(f"fonte externa {nome} não encontrada em {caminho}; rode scripts/extrair_externas.py")
+        script = "baixar_bolsa_familia" if nome == "bolsa_familia_municipio" else "extrair_externas"
+        raise FileNotFoundError(
+            f"fonte externa {nome} não encontrada em {caminho}; rode python -m scripts.{script}"
+        )
     return pd.read_parquet(caminho)
 
 

@@ -52,7 +52,7 @@ def processar(bruto: pd.DataFrame, ano: int, mapa: dict[int, int]) -> pd.DataFra
         print(f"  aviso: {int(sem_valor.sum())} município(s) sem nenhum valor descartado(s): "
               f"{sorted(out.loc[sem_valor, 'id_municipio'].astype(int).tolist())}")
     out = out[~sem_valor]
-    out = out.astype({"id_municipio": "int64", "ano": "int64", **{c: "int64" for c in COLUNAS.values()}})
+    out = out.astype({"id_municipio": "int64", "ano": "int64", **{c: "Int64" for c in COLUNAS.values()}})
     return out.reset_index(drop=True)
 
 

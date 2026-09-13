@@ -4,8 +4,8 @@ As saídas são pequenas e vão para data/external (versionado): quem clona o re
 não precisa de credencial. Só quem for reextrair precisa do .env.
 
 Uso:
-    python scripts/extrair_externas.py                 # todas
-    python scripts/extrair_externas.py ideb_municipio  # só as citadas
+    python -m scripts.extrair_externas                 # todas
+    python -m scripts.extrair_externas ideb_municipio   # só as citadas
 """
 import argparse
 import json
