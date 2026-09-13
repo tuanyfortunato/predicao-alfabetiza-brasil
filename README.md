@@ -36,14 +36,14 @@ pytest
 Os dados leves já vêm no repositório: Gold da Fase 2 (`data/gold/`), Silver de metas e resultados (`data/silver/*.parquet`) e as oito fontes externas agregadas por município (`data/external/`). Só a Silver de alunos (124 MB) precisa ser copiada do lake da Fase 2:
 
 ```bash
-python scripts/baixar_dados.py            # precisa de FASE2_LAKE_PATH no .env
+python -m scripts.baixar_dados            # precisa de FASE2_LAKE_PATH no .env
 ```
 
 Para reextrair as externas (só se quiser atualizar; exige credencial GCP e os CSVs do MDS):
 
 ```bash
-python scripts/extrair_externas.py        # 7 fontes da Base dos Dados (BigQuery)
-python scripts/baixar_bolsa_familia.py    # Bolsa Família, dezembro de cada ano
+python -m scripts.extrair_externas        # 7 fontes da Base dos Dados (BigQuery)
+python -m scripts.baixar_bolsa_familia    # Bolsa Família, dezembro de cada ano
 ```
 
 ## Estrutura

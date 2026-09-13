@@ -5,8 +5,8 @@ Básicos e Variáveis" (um arquivo por ano, todos os meses) e ficam fora do repo
 O parquet resultante (poucos kB) é versionado em data/external.
 
 Uso:
-    python scripts/baixar_bolsa_familia.py                       # anos 2023 e 2024, origem do .env
-    python scripts/baixar_bolsa_familia.py --anos 2023 2024 2025 --origem D:/mds
+    python -m scripts.baixar_bolsa_familia                       # anos 2023 e 2024, origem do .env
+    python -m scripts.baixar_bolsa_familia --anos 2023 2024 2025 --origem D:/mds
 """
 import argparse
 import os
@@ -46,7 +46,13 @@ def processar(bruto: pd.DataFrame, ano: int, mapa: dict[int, int]) -> pd.DataFra
     if sem_match.any():
         print(f"  aviso: {int(sem_match.sum())} código(s) sem correspondência de 7 dígitos descartado(s): "
               f"{sorted(dez.loc[sem_match.values, 'codigo_ibge'].tolist())}")
-    out = out[~sem_match].astype({"id_municipio": "int64", "ano": "int64"})
+    out = out[~sem_match]
+    sem_valor = out[list(COLUNAS.values())].isna().all(axis=1)
+    if sem_valor.any():
+        print(f"  aviso: {int(sem_valor.sum())} município(s) sem nenhum valor descartado(s): "
+              f"{sorted(out.loc[sem_valor, 'id_municipio'].astype(int).tolist())}")
+    out = out[~sem_valor]
+    out = out.astype({"id_municipio": "int64", "ano": "int64", **{c: "int64" for c in COLUNAS.values()}})
     return out.reset_index(drop=True)
 
 
