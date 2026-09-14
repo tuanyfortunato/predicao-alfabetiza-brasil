@@ -49,3 +49,11 @@ def test_coeficientes_logistica(ajustado):
     assert "coeficiente" in coef.columns and "taxa_alfabetizacao_mun_t1" in coef["feature"].values
     with pytest.raises(TypeError):
         interpret.coeficientes_logistica(ajustado[4])
+
+
+def test_amostrar_posicoes_reproduz_a_amostra_do_shap():
+    import numpy as np
+    pos = interpret.amostrar_posicoes(1000, 50)
+    assert len(pos) == 50 and len(set(pos)) == 50 and pos.max() < 1000
+    assert np.array_equal(pos, interpret.amostrar_posicoes(1000, 50))
+    assert np.array_equal(interpret.amostrar_posicoes(30, 100), np.arange(30))
