@@ -30,11 +30,19 @@ def calcular_metricas(y, proba, limiar: float = 0.5, pesos=None) -> dict:
 
 def escolher_limiar(y, proba, recall_minimo: float = 0.8) -> float:
     """Não alfabetizado é previsto quando proba < limiar. O menor limiar que ainda
-    captura recall_minimo dos não alfabetizados é o que erra menos alfabetizados."""
+    captura recall_minimo dos não alfabetizados é o que erra menos alfabetizados.
+
+    Usa uma fórmula exata baseada em rank (em vez de np.quantile) porque com
+    probabilidades empatadas — rotina em modelos de árvore, cujas folhas repetem a
+    mesma probabilidade para muitas amostras — a interpolação de np.quantile pode
+    devolver um limiar acima do necessário, entregando recall maior que o pedido
+    às custas de mais alfabetizados classificados como não alfabetizados."""
     y = np.asarray(y).astype(int)
     proba = np.asarray(proba, dtype=float)
-    q = np.quantile(proba[y == 0], recall_minimo, method="higher")
-    return float(np.nextafter(q, np.inf))
+    proba0 = np.sort(proba[y == 0])
+    n = len(proba0)
+    k = int(np.clip(np.ceil(n * recall_minimo) - 1, 0, n - 1))
+    return float(np.nextafter(proba0[k], np.inf))
 
 
 def metricas_por_recorte(recorte, y, proba, limiar: float, pesos=None, minimo: int = 500) -> pd.DataFrame:
@@ -44,11 +52,15 @@ def metricas_por_recorte(recorte, y, proba, limiar: float, pesos=None, minimo: i
     linhas = []
     for valor, pos in recorte.groupby(recorte).groups.items():
         pos = np.asarray(pos)
+        # exige as duas classes presentes: roc_auc_score não é definido com uma só.
         if len(pos) < minimo or len(np.unique(y[pos])) < 2:
             continue
         m = calcular_metricas(y[pos], proba[pos], limiar, None if pesos is None else pesos[pos])
         m.pop("matriz")
         linhas.append({"recorte": valor, **m})
+    if not linhas:
+        colunas = ["recorte"] + [k for k in calcular_metricas([0, 1], [0.1, 0.9]) if k != "matriz"]
+        return pd.DataFrame(columns=colunas).reset_index(drop=True)
     return pd.DataFrame(linhas).sort_values("roc_auc", ascending=False).reset_index(drop=True)
 
 
