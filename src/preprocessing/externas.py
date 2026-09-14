@@ -86,5 +86,24 @@ def montar_contexto_externo(ano: int, fontes: dict | None = None) -> pd.DataFram
     ctx["pct_familias_bolsa_familia"] = ctx["familias_bf"].astype("float64") / ctx["domicilios_2022"]
     ctx = ctx.drop(columns="familias_bf")
 
+    # converter dtypes nullable de volta para numpy nativo
+    # evita que pandas nullable Int64/Float64/boolean contaminem a saída
+    for col in ctx.columns:
+        dtype_str = str(ctx[col].dtype)
+        if dtype_str == "Float64":
+            ctx[col] = ctx[col].astype("float64")
+        elif dtype_str == "Int64":
+            # Int64 com NaN → float64; Int64 sem NaN → int64
+            if ctx[col].isna().any():
+                ctx[col] = ctx[col].astype("float64")
+            else:
+                ctx[col] = ctx[col].astype("int64")
+        elif dtype_str == "boolean":
+            # boolean → bool (mas mantém NaN como float se houver)
+            if ctx[col].isna().any():
+                ctx[col] = ctx[col].astype("float64")
+            else:
+                ctx[col] = ctx[col].astype("bool")
+
     assert ctx["id_municipio"].is_unique
     return ctx.reset_index(drop=True)
