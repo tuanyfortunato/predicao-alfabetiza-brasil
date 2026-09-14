@@ -80,11 +80,17 @@ def montar_contexto_externo(ano: int, fontes: dict | None = None) -> pd.DataFram
     ctx = ctx.merge(ce, on="id_municipio", how="left")
 
     # famílias no Bolsa Família em dezembro de t-1 sobre os domicílios do Censo 2022;
-    # as contagens brutas são volume (já coberto por log_populacao) e ficam de fora
-    bf = _no_ano(fontes, "bolsa_familia_municipio", ano)[["id_municipio", "familias_bf"]]
-    ctx = ctx.merge(bf, on="id_municipio", how="left")
-    ctx["pct_familias_bolsa_familia"] = ctx["familias_bf"].astype("float64") / ctx["domicilios_2022"]
-    ctx = ctx.drop(columns="familias_bf")
+    # as contagens brutas são volume (já coberto por log_populacao) e ficam de fora.
+    # a fonte só tem 2023/2024 commitados (adicionada depois das demais, adendo 11): para anos em
+    # que t-1 fica antes de 2023 ainda não há histórico — degrada para NaN em vez de quebrar a função.
+    try:
+        bf = _no_ano(fontes, "bolsa_familia_municipio", ano)[["id_municipio", "familias_bf"]]
+        ctx = ctx.merge(bf, on="id_municipio", how="left")
+        ctx["pct_familias_bolsa_familia"] = ctx["familias_bf"].astype("float64") / ctx["domicilios_2022"]
+        ctx = ctx.drop(columns="familias_bf")
+    except ValueError:
+        print(f"aviso: bolsa_familia_municipio sem ano <= {ano - DEFASAGEM['bolsa_familia_municipio']} disponível — pct_familias_bolsa_familia fica NaN para ano={ano}")
+        ctx["pct_familias_bolsa_familia"] = float("nan")
 
     # converter dtypes nullable de volta para numpy nativo
     # evita que pandas nullable Int64/Float64/boolean contaminem a saída

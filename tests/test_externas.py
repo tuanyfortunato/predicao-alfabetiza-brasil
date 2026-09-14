@@ -80,3 +80,14 @@ def test_anos_referencia_para_o_dicionario():
         "pib_municipio": 2022, "populacao_municipio": 2023, "ideb_municipio": 2023,
         "indicadores_municipio": 2023, "censo_escolar_municipio": 2023, "bolsa_familia_municipio": 2023,
     }
+
+
+def test_bolsa_familia_sem_historico_suficiente_vira_nan_sem_quebrar():
+    # bolsa_familia só tem 2023/2024 commitados; para ano=2023 (defasagem 1) precisaria de <= 2022,
+    # que não existe ainda - a função deve degradar só essa coluna, não propagar o ValueError
+    f = _fontes()
+    ctx = externas.montar_contexto_externo(2023, f)
+    assert len(ctx) == 2 and ctx["id_municipio"].is_unique
+    assert ctx["pct_familias_bolsa_familia"].isna().all()
+    assert ctx["ideb_ai"].notna().any()                      # demais fontes seguem populadas normalmente
+    assert not ctx["pib_per_capita"].isna().all()

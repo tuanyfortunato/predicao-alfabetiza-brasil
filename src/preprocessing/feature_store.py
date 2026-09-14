@@ -49,10 +49,7 @@ def _municipio_no_ano(ano: int) -> pd.DataFrame:
     df = mvr[["id_municipio", "sigla_uf", "alunos_com_nota", "taxa_alfabetizacao", "ic95", "meta_ano", "gap", "situacao_meta"]]
     df = df.merge(evo[["id_municipio", "taxa_participacao", "proficiencia_media", "criancas_nao_alfabetizadas"]], on="id_municipio", how="left")
     df = df.merge(dist[["id_municipio"] + COLS_DISTRIBUICAO], on="id_municipio", how="left")
-    # externa referenciada a ano+1 (o ano que este registro tenta prever, como meta_prox abaixo):
-    # dá a mesma vintage que montar_base_aluno(ano+1) usaria e evita pedir defasagem além do que a fonte cobre
-    # (bolsa_familia só tem 2023/2024 commitados; ano puro quebraria a linha de 2023 por faltar 2022)
-    df = df.merge(montar_contexto_externo(ano + 1).drop(columns=COLS_EXTERNAS_REPETIDAS), on="id_municipio", how="left")
+    df = df.merge(montar_contexto_externo(ano).drop(columns=COLS_EXTERNAS_REPETIDAS), on="id_municipio", how="left")
     df = df.merge(meta_pactuada(ano + 1, carregar_metas()).rename(columns={"meta_alvo": "meta_prox"}), on="id_municipio", how="left")
     df.insert(0, "ano", ano)
     return df

@@ -38,17 +38,27 @@ Gerado a partir de `src/preprocessing/feature_store.py` (Task 7), rodado sobre o
    e negligenciável; na `base_modelagem_aluno` não aparece porque esse município não tem alunos
    avaliados em 2024 (5.517 municípios distintos na base).
 
-### Nota de desenho: externas do `base_modelagem_municipio` são referenciadas a `ano + 1`
+### Nota de desenho: externas do `base_modelagem_municipio` são referenciadas ao próprio `ano` da linha
 
-Cada linha `(ano, id_municipio)` carrega o resultado Gold do próprio `ano`, mas o objetivo da
-tabela é prever o resultado do ano **seguinte** (`taxa_prox`, `situacao_meta_prox`,
-`nao_atingiu_prox`, `meta_prox`). Por isso `montar_contexto_externo` e `meta_pactuada` são chamados
-com `ano + 1`, não `ano` — mesma convenção usada por `montar_base_aluno(ano_alvo)`: a externa usada
-é a que estaria disponível *antes* do resultado que se quer prever. Isso também é necessário na
-prática: `bolsa_familia_municipio` só tem 2023/2024 commitados, e `montar_contexto_externo(2023)`
-(sem o `+1`) pediria uma defasagem de 1 ano a partir de 2023 → 2022, que a fonte não cobre — o
-código original do brief usava `ano` puro e quebrava a linha de 2023 real; foi corrigido para
-`ano + 1` (ver relatório da task para detalhe).
+Cada linha `(ano, id_municipio)` carrega o resultado Gold do próprio `ano` **e** o contexto externo
+do próprio `ano` (`montar_contexto_externo(ano)`, mesma regra de defasagem por fonte de sempre —
+t−1 ou t−2 relativo a `ano`, nunca ao ano seguinte). Só `meta_prox` e os alvos (`taxa_prox`,
+`situacao_meta_prox`, `nao_atingiu_prox`) olham para `ano + 1`, porque são literalmente o que a
+linha tenta prever. Isso mantém a garantia "contexto sempre t−1 relativo ao que descreve" para
+todas as seis fontes com defasagem — uma versão anterior desta task tinha trocado
+`montar_contexto_externo(ano)` por `montar_contexto_externo(ano + 1)` para contornar uma fonte com
+histórico curto (ver observação sobre `pct_familias_bolsa_familia` abaixo), mas isso adiantava em
+um ano a referência de `indicadores_municipio`, `censo_escolar_municipio` e `populacao_municipio`
+(passavam a usar dados do próprio `ano`, vazamento) e do `pib_municipio` (passava a usar t−1 em vez
+de t−2). Foi revertido: `_municipio_no_ano` volta a chamar `montar_contexto_externo(ano)` puro, e o
+gap real (Bolsa Família) foi corrigido na fonte (`externas.py`), não contornado aqui.
+
+**`pct_familias_bolsa_familia` sai 100% NaN nas linhas de 2023**: a fonte `bolsa_familia_municipio`
+só tem 2023/2024 commitados (foi adicionada depois das demais fontes, adendo 11); a linha de 2023
+pediria uma referência ≤ 2022, que ainda não existe. `montar_contexto_externo` degrada essa coluna
+para NaN nesse caso específico (só essa fonte, só quando faltar histórico) em vez de levantar
+exceção — as demais 54 colunas externas da linha de 2023 seguem populadas normalmente. Deixa de ser
+um gap assim que mais anos de Bolsa Família forem extraídos.
 
 ---
 
@@ -208,7 +218,7 @@ ano-alvo, por desenho (`contexto.py`, Task 6). Sufixo `_mun_t1` em todas.
 
 | coluna | origem | ano de referência | escala | regime | observação |
 |---|---|---|---|---|---|
-| `pct_familias_bolsa_familia` | `familias_bf (dez/2023) / domicilios_2022` | 2023 | **fração, sem cap (pode passar de 1)** | produção | mediana ~0,25; máximo observado ~1,59 em municípios pequenos |
+| `pct_familias_bolsa_familia` | `familias_bf (dez/2023) / domicilios_2022` | 2023 | **fração, sem cap (pode passar de 1)** | produção | mediana ~0,25; máximo observado ~1,59 em municípios pequenos; na base de município, a linha de 2023 pede referência ≤ 2022 (inexistente ainda) e fica 100% NaN — ver seção "Externas referenciadas ao próprio ano" |
 
 ### LOO da escola (`contexto_escola_loo`/`participacao_escola_loo`, regime diagnóstico)
 
@@ -228,8 +238,8 @@ aluno, ainda é uma agregação do mesmo ano que o alvo).
 ## `base_modelagem_municipio`
 
 Grão `(ano, id_municipio)`, rede municipal, anos 2023 e 2024. Usada pelo modelo de risco de não
-atingir a meta de alfabetização de 2030 (Task 16) — cada linha usa o resultado do próprio `ano`
-mais contexto externo referenciado a `ano + 1` para prever o resultado de `ano + 1`
+atingir a meta de alfabetização de 2030 (Task 16) — cada linha usa o resultado e o contexto externo
+do próprio `ano` para prever o resultado de `ano + 1`
 (`taxa_prox`/`situacao_meta_prox`/`nao_atingiu_prox`), NaN em 2024 por não haver 2025 na Gold ainda.
 
 ### Identificadores (regime *fora*)
@@ -259,7 +269,7 @@ mais contexto externo referenciado a `ano + 1` para prever o resultado de `ano +
 | `pct_atencao` | Gold `distribuicao_proficiencia` (rede municipal) | ano da linha | pontos percentuais (0–100) | produção | |
 | `pct_quase_la` | Gold `distribuicao_proficiencia` (rede municipal) | ano da linha | pontos percentuais (0–100) | produção | |
 
-### Externas referenciadas a `ano + 1` (mesmas fontes e escalas da base de aluno)
+### Externas referenciadas ao próprio `ano` da linha (mesmas fontes e escalas da base de aluno)
 
 Mesmas 55 colunas de `diretorios_municipio`/Censo 2022/PIB/população/IDEB/indicadores/censo
 escolar/Bolsa Família descritas na seção "Externas por fonte" acima — origem, escala e
@@ -275,12 +285,22 @@ observações idênticas (`regiao`, `capital_uf`, `amazonia_legal`, `latitude`, 
 `pct_escolas_agua_potavel`, `pct_escolas_energia_rede`, `pct_escolas_lab_informatica`,
 `pct_escolas_quadra`, `pct_escolas_alimentacao`, `matriculas_ai`, `docentes_ai`,
 `pct_matriculas_integral_ai`, `alunos_por_turma_ai`, `alunos_por_docente_ai`,
-`pct_familias_bolsa_familia`). A diferença é só o ano de referência efetivo: como cada linha usa
-`ano + 1` na chamada de `montar_contexto_externo`, o ano de referência real por fonte é um a mais
-do que a tabela acima mostra para uma linha de 2023 (ex.: PIB usado na linha de 2023 é o de 2022,
-igual ao que a linha de 2024 usaria — mesma vintage que prediz o resultado de 2024 nos dois casos);
-`pct_va_*` seguem 100% NaN nos dois anos, pela mesma razão da base de aluno. `nome_municipio` já
-está no grupo "identificadores" acima e não se repete aqui.
+`pct_familias_bolsa_familia`). A diferença é o ano de referência efetivo por linha: como cada linha
+usa `montar_contexto_externo(ano)` com o próprio `ano` da linha (não `ano + 1`), a linha de 2023
+referencia um ano a **menos** por fonte do que a linha de 2024 (e do que a base de aluno, alvo
+2024) — ex.: PIB na linha de 2023 é o de 2021 (t−2 relativo a 2023), enquanto a linha de 2024 e a
+base de aluno usam 2022 (t−2 relativo a 2024).
+
+Isso muda **onde** os dois gaps conhecidos aparecem nesta tabela (confirmado rodando
+`montar_base_municipio()` de verdade e medindo `notna().mean()` por ano):
+- `pct_va_*`: a linha de 2023 usa PIB **2021**, que tem a quebra setorial publicada (~100%
+  populado); a linha de 2024 usa PIB **2022**, sem quebra setorial (**100% NaN**) — mesmo gap da
+  base de aluno, só que aqui aparece isolado na linha de 2024, não nas duas.
+- `pct_familias_bolsa_familia`: a linha de 2023 pede uma referência ≤ 2022 que a fonte não tem
+  (**100% NaN**, ver observação acima); a linha de 2024 usa a referência 2023, igual à base de
+  aluno (**~100% populado**).
+
+`nome_municipio` já está no grupo "identificadores" acima e não se repete aqui.
 
 ### Meta e alvos do ano seguinte
 
