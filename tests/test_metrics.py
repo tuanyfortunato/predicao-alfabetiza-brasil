@@ -41,3 +41,20 @@ def test_recorte_e_calibracao():
     assert r["recorte"].tolist() == ["SP"] and r.loc[0, "n"] == 900
     cal = metrics.tabela_calibracao(y, proba, n_bins=5)
     assert len(cal) <= 5 and cal["n"].sum() == 1200 and cal["taxa_observada"].between(0, 1).all()
+
+
+def test_recorte_sem_grupo_valido_retorna_dataframe_vazio():
+    recorte = ["A"] * 10 + ["B"] * 10
+    y = np.array([1, 0] * 10)
+    proba = np.random.default_rng(0).random(20)
+    r = metrics.metricas_por_recorte(recorte, y, proba, 0.5, minimo=500)
+    assert len(r) == 0
+    assert "recorte" in r.columns and "roc_auc" in r.columns and "matriz" not in r.columns
+
+
+def test_escolher_limiar_nao_ultrapassa_recall_com_probabilidades_empatadas():
+    proba0 = np.array([0.1] * 50 + [0.2] * 50 + [0.3] * 50 + [0.4] * 50)
+    y0 = np.zeros_like(proba0, dtype=int)
+    limiar = metrics.escolher_limiar(y0, proba0, recall_minimo=0.5)
+    recall = (proba0 < limiar).mean()
+    assert recall == pytest.approx(0.5)

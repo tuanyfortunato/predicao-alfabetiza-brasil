@@ -1,0 +1,7 @@
+{
+  "clf__l2_regularization": 0.009294394155644996,
+  "clf__learning_rate": 0.1234589951518742,
+  "clf__max_depth": 6,
+  "clf__max_leaf_nodes": 70,
+  "clf__min_samples_leaf": 142
+}
