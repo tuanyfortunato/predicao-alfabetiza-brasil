@@ -97,3 +97,41 @@ def lake_minimo(lake_tmp):
         extra = df[df["id_municipio"] == 1100015].assign(id_municipio=1100031)   # terceiro município copia o primeiro
         _gravar(pd.concat([df, extra], ignore_index=True), config.EXTERNAL / f"{nome}.parquet")
     return lake_tmp
+
+
+def montar_base_sintetica(n_escolas: int = 30, alunos_por_escola: int = 20, seed: int = 0) -> pd.DataFrame:
+    """Imita base_modelagem_aluno: contexto com sinal de verdade, colunas proibidas presentes, NaN nas externas."""
+    rng = np.random.default_rng(seed)
+    muns = [1100015, 1100023, 1100031, 2900108, 3550308]
+    ufs = {1100015: "RO", 1100023: "RO", 1100031: "RO", 2900108: "BA", 3550308: "SP"}
+    regioes = {"RO": "Norte", "BA": "Nordeste", "SP": "Sudeste"}
+    taxa_mun = {m: t for m, t in zip(muns, [0.35, 0.45, np.nan, 0.55, 0.75])}
+    linhas = []
+    for e in range(n_escolas):
+        m = muns[e % len(muns)]
+        efeito_escola = rng.normal(0, 0.8)
+        for _ in range(alunos_por_escola):
+            base_logit = 3 * ((taxa_mun[m] if not np.isnan(taxa_mun[m]) else 0.5) - 0.5) + efeito_escola
+            p = 1 / (1 + np.exp(-(base_logit + rng.normal(0, 1))))
+            alf = int(rng.random() < p)
+            linhas.append({
+                "id_municipio": m, "id_escola": 60000 + e, "sigla_uf": ufs[m], "regiao": regioes[ufs[m]],
+                "rede_nome": "municipal" if e % 4 else "estadual", "rede": 3 if e % 4 else 2,
+                "taxa_alfabetizacao_mun_t1": taxa_mun[m], "ic95_mun_t1": 0.05, "sem_historico": np.isnan(taxa_mun[m]),
+                "meta_alvo": 0.6, "log_pib_per_capita": rng.normal(3, 0.5), "tdi_ai": rng.normal(8, 3) if rng.random() > 0.1 else np.nan,
+                "pct_escolas_rurais": rng.random(), "matriculas_ai": int(rng.integers(100, 5000)),
+                "taxa_escola_loo": np.nan, "prof_media_escola_loo": np.nan, "n_alunos_escola": alunos_por_escola - 1,
+                "taxa_participacao_escola_loo": 0.9,
+                "alfabetizado": alf, "proficiencia": 743 + (1 if alf else -1) * abs(rng.normal(30, 20)),
+                "peso_aluno": float(rng.uniform(0.5, 2.0)), "presente": True, "sem_nota": False, "presenca": 1,
+                "preenchimento_caderno": 1, "caderno": "1", "serie": 2, "ano": 2024, "presenca_nome": "presente",
+                "_row_hash": 0, "_ingestion_ts": "", "_source": "", "nome_municipio": "x",
+            })
+    df = pd.DataFrame(linhas)
+    df["id_aluno"] = range(1, len(df) + 1)
+    df["matriculas_ai"] = df["matriculas_ai"].astype("Int64")   # dtype nullable como vem do parquet
+    g = df.groupby("id_escola")
+    n = g["alfabetizado"].transform("count")
+    df["taxa_escola_loo"] = (g["alfabetizado"].transform("sum") - df["alfabetizado"]) / (n - 1)
+    df["prof_media_escola_loo"] = (g["proficiencia"].transform("sum") - df["proficiencia"]) / (n - 1)
+    return df
