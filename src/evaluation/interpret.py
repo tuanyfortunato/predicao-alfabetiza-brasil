@@ -17,10 +17,17 @@ def nomes_features(pipeline) -> list[str]:
     return nomes
 
 
+def amostrar_posicoes(n_total: int, n_amostra: int | None, seed: int = config.SEED) -> np.ndarray:
+    """Mesma amostra que explicar_shap/importancia_permutacao tiram; útil para alinhar grupos (região, UF)."""
+    if n_amostra is None or n_amostra >= n_total:
+        return np.arange(n_total)
+    return np.random.default_rng(seed).choice(n_total, size=n_amostra, replace=False)
+
+
 def _amostra(X, n, seed, *outros):
-    if n is None or n >= len(X):
+    pos = amostrar_posicoes(len(X), n, seed)
+    if len(pos) == len(X):
         return (X, *outros)
-    pos = np.random.default_rng(seed).choice(len(X), size=n, replace=False)
     return (X.iloc[pos], *[None if o is None else np.asarray(o)[pos] for o in outros])
 
 
