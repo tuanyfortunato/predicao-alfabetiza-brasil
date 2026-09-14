@@ -20,5 +20,10 @@ models/
 # SO / IDE
 .DS_Store
 .vscode/
+
+#Outros
+*.log
+.superpowers
 CLAUDE.md
 docs/details
+.fase02
