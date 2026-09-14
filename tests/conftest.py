@@ -135,3 +135,38 @@ def montar_base_sintetica(n_escolas: int = 30, alunos_por_escola: int = 20, seed
     df["taxa_escola_loo"] = (g["alfabetizado"].transform("sum") - df["alfabetizado"]) / (n - 1)
     df["prof_media_escola_loo"] = (g["proficiencia"].transform("sum") - df["proficiencia"]) / (n - 1)
     return df
+
+
+def montar_base_municipio_sintetica(n: int = 200, seed: int = 0) -> pd.DataFrame:
+    """Imita base_modelagem_municipio: 2023 com alvo de 2024, 2024 sem alvo; taxa_prox depende da taxa e do PIB."""
+    rng = np.random.default_rng(seed)
+    ids = 1100000 + np.arange(n)
+    ufs = rng.choice(["RO", "BA", "SP"], n)
+    regioes = {"RO": "Norte", "BA": "Nordeste", "SP": "Sudeste"}
+    linhas = []
+    for ano in (2023, 2024):
+        taxa = np.clip(rng.normal(0.55, 0.15, n), 0.05, 0.98)
+        pib = rng.normal(3, 0.5, n)
+        for i in range(n):
+            linhas.append({
+                "ano": ano, "id_municipio": ids[i], "nome_municipio": f"m{i}", "sigla_uf": ufs[i], "regiao": regioes[ufs[i]],
+                "alunos_com_nota": 200, "taxa_alfabetizacao": taxa[i], "ic95": 0.06, "meta_ano": np.nan if ano == 2023 else 0.6,
+                "gap": np.nan, "atingiu_meta": None, "situacao_meta": "sem_meta" if ano == 2023 else "atingiu",
+                "taxa_participacao": 0.9, "proficiencia_media": 700 + 100 * taxa[i], "criancas_nao_alfabetizadas": 200 * (1 - taxa[i]),
+                **{f"pct_nivel_{k}": 1 / 9 for k in range(9)}, "pct_critico": 0.2, "pct_atencao": 0.2, "pct_quase_la": 0.1,
+                "log_pib_per_capita": pib[i], "tdi_ai": rng.normal(8, 3) if rng.random() > 0.1 else np.nan,
+                "taxa_alfabetizacao_adultos": 0.90, "pct_escolas_rurais": rng.random(), "log_populacao": rng.normal(9, 1),
+                "densidade_demografica": rng.lognormal(3, 1), "meta_prox": 0.6 if ano == 2023 else 0.65,
+                "pct_familias_bolsa_familia": np.nan if ano == 2023 else rng.random(),
+                "pct_va_servicos": rng.random() if ano == 2023 else np.nan,
+            })
+    df = pd.DataFrame(linhas)
+    e23 = df["ano"] == 2023
+    prox = np.clip(df.loc[e23, "taxa_alfabetizacao"] * 0.8 + 0.05 * df.loc[e23, "log_pib_per_capita"] + rng.normal(0, 0.05, e23.sum()), 0, 1)
+    df.loc[e23, "taxa_prox"] = prox.to_numpy()
+    df.loc[e23, "situacao_meta_prox"] = np.where(prox < 0.6 - 0.06, "nao_atingiu", np.where(prox < 0.6 + 0.06, "indistinguivel", "atingiu"))
+    df.loc[e23 & (df["id_municipio"] < 1100000 + 10), "situacao_meta_prox"] = "sem_meta"
+    df.loc[df["situacao_meta_prox"] == "sem_meta", "nao_atingiu_prox"] = np.nan
+    ok = e23 & (df["situacao_meta_prox"] != "sem_meta")
+    df.loc[ok, "nao_atingiu_prox"] = (df.loc[ok, "situacao_meta_prox"] == "nao_atingiu").astype(float)
+    return df

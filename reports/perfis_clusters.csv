@@ -1,0 +1,4 @@
+cluster,n,taxa_media,criancas_nao_alfabetizadas,regiao_dominante,pct_regiao_dominante,pct_nivel_0,pct_nivel_1,pct_nivel_2,pct_nivel_3,pct_nivel_4,pct_nivel_5,pct_nivel_6,pct_nivel_7,pct_nivel_8,taxa_alfabetizacao_adultos,log_pib_per_capita,pct_escolas_rurais,tdi_ai,log_populacao,densidade_demografica
+0,2041,43.1696,443830.0,Nordeste,0.5674,3.934,7.5279,12.8003,16.8464,22.0534,19.7787,11.4841,4.3151,1.26,0.8465,9.9233,0.6015,20.2589,9.6792,162.3935
+1,413,90.999,7598.0,Nordeste,0.7361,0.4284,0.5947,1.417,2.9158,5.5338,11.8141,21.2783,26.2748,29.7429,0.8177,9.7761,0.5212,19.5373,9.2479,48.2774
+2,2996,72.2562,301523.0,Sudeste,0.4349,1.2643,2.4073,4.7993,8.2498,17.1468,29.2222,23.3711,10.0098,3.5295,0.9142,10.4749,0.3211,19.7675,9.3391,95.4338
