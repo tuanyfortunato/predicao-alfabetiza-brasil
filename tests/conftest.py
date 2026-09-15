@@ -169,4 +169,8 @@ def montar_base_municipio_sintetica(n: int = 200, seed: int = 0) -> pd.DataFrame
     df.loc[df["situacao_meta_prox"] == "sem_meta", "nao_atingiu_prox"] = np.nan
     ok = e23 & (df["situacao_meta_prox"] != "sem_meta")
     df.loc[ok, "nao_atingiu_prox"] = (df.loc[ok, "situacao_meta_prox"] == "nao_atingiu").astype(float)
+    # replica o caso real: ~100 municípios sem meta pactuada para o ano seguinte na aplicação de 2024
+    # (aqui, os 10 primeiros ids) — devem continuar no ranking com gap/acima_da_margem não computáveis.
+    sem_meta_2025 = (df["ano"] == 2024) & (df["id_municipio"] < 1100000 + 10)
+    df.loc[sem_meta_2025, "meta_prox"] = np.nan
     return df
