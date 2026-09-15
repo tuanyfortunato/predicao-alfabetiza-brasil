@@ -17,6 +17,8 @@ def calcular_metricas(y, proba, limiar: float = 0.5, pesos=None) -> dict:
         "limiar": float(limiar),
         "prevalencia_nao_alf": float(np.average(nao, weights=pesos)),
         "roc_auc": float(roc_auc_score(y, proba, sample_weight=pesos)),
+        # pr_auc olha pra classe "não alfabetizado" (que é o 0), por isso inverte y e proba aqui --
+        # é a classe que interessa pro gestor público, não faz sentido medir PR-AUC da maioria
         "pr_auc_nao_alf": float(average_precision_score(nao, 1 - proba, sample_weight=pesos)),
         "f1_nao_alf": float(f1_score(y, pred, pos_label=0, sample_weight=pesos, zero_division=0)),
         "recall_nao_alf": float(recall_score(y, pred, pos_label=0, sample_weight=pesos, zero_division=0)),

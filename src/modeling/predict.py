@@ -21,11 +21,14 @@ def carregar_modelo(caminho: Path | None = None, regime: str = "producao", model
 
 
 def pontuar(pipeline, base: pd.DataFrame, limiar: float = 0.5) -> pd.DataFrame:
+    # feature_names_in_ garante que pega as colunas na mesma ordem/conjunto que o pipeline
+    # foi treinado, mesmo que "base" tenha colunas extras (ids, alvo etc)
     X = base[list(pipeline.feature_names_in_)]
     proba = pipeline.predict_proba(X)[:, 1].round(CASAS)
     out = base[ID_COLS].reset_index(drop=True).copy()
     out["prob_alfabetizado"] = proba
     out["risco_nao_alf"] = (1 - proba).round(CASAS)
+    # limiar vem do train.py (escolhido pra bater o recall mínimo), não é o 0.5 padrão do sklearn
     out["classe_prevista"] = np.where(proba >= limiar, "alfabetizado", "nao_alfabetizado")
     return out
 
@@ -43,10 +46,13 @@ def main(argv=None) -> None:
 
     base = pd.read_parquet(args.entrada or config.PROCESSED / "base_modelagem_aluno.parquet")
     if args.so_teste:
+        # usa a partição salva pelo train.py em vez de dividir de novo -- assim pontua exatamente
+        # os mesmos alunos que ficaram de fora do treino daquele modelo
         part = pd.read_parquet(config.MODELS / f"particao_{args.regime}.parquet")
         base = base[base["id_aluno"].isin(part.loc[part["parte"] == "teste", "id_aluno"])]
     limiar = args.limiar
     if limiar is None:
+        # sem --limiar explícito, usa o mesmo limiar que o train.py calculou e salvou nas métricas
         limiar = json.loads((config.REPORTS / f"metricas_{args.regime}_{args.modelo}.json").read_text())["limiar"]
 
     pred = pontuar(carregar_modelo(args.caminho_modelo, args.regime, args.modelo), base, limiar)

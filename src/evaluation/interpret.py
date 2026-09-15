@@ -12,6 +12,8 @@ from src import config
 def nomes_features(pipeline) -> list[str]:
     nomes = []
     for n in pipeline.named_steps["prep"].get_feature_names_out():
+        # o ColumnTransformer prefixa tudo com "num__"/"cat__"; tira isso e deixa
+        # o indicador de valor faltante com um nome legível em vez do nome técnico do sklearn
         n = n.split("__", 1)[1]
         nomes.append(n.replace("missingindicator_", "faltante_") if n.startswith("missingindicator_") else n)
     return nomes
@@ -55,6 +57,9 @@ def explicar_shap(pipeline, X, n_amostra: int | None = 10_000, seed: int = confi
         base = explicador.expected_value
     else:
         raise TypeError(f"sem explicador para {type(clf).__name__}")
+    # o shap muda o formato de saída dependendo da versão/modelo: às vezes devolve uma lista
+    # [valores da classe 0, valores da classe 1], às vezes um array 3D -- os dois casos abaixo
+    # normalizam pra sempre pegar a classe 1 (alfabetizado), que é o que a gente quer explicar
     if isinstance(valores, list):                 # algumas versões devolvem [classe0, classe1]
         valores, base = valores[1], np.ravel(base)[-1]
     elif np.ndim(valores) == 3:

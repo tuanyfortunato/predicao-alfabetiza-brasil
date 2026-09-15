@@ -29,6 +29,7 @@ def _linhas(caminho: Path) -> int:
 def copiar_lake(origem: Path, destino: Path) -> dict[str, int]:
     origem, destino = Path(origem), Path(destino)
     if not (origem / "gold").is_dir():
+        # falha rápido e claro se apontar pro repo errado, em vez de deixar dar erro esquisito lá na frente
         raise FileNotFoundError(f"não achei a pasta gold em {origem}")
 
     resumo = {}
@@ -46,7 +47,8 @@ def copiar_lake(origem: Path, destino: Path) -> dict[str, int]:
 
     alunos_dst = destino / "silver" / "alunos"
     if alunos_dst.exists():
-        shutil.rmtree(alunos_dst)
+        shutil.rmtree(alunos_dst)  # copytree não sobrescreve pasta existente, então limpa antes
+    # ignora .crc (checksum do Spark) e arquivos _* (tipo _SUCCESS) que não servem pra nada aqui
     shutil.copytree(origem / "silver" / "alunos", alunos_dst,
                     ignore=shutil.ignore_patterns("*.crc", "_*"))
     resumo["alunos"] = sum(_linhas(p) for p in alunos_dst.rglob("*.parquet"))
