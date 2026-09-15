@@ -17,7 +17,7 @@ import pandas as pd
 from dotenv import load_dotenv
 
 BD = "basedosdados"
-ANO_MIN = 2019          # séries temporais: só o que a regra t-1/t-2 pode usar
+ANO_MIN = 2019          # séries temporais: só o que a regra t-1/t-2 pode usar (não precisa puxar histórico inteiro do BigQuery)
 ANOS_CENSO_ESCOLAR = (2022, 2023)
 TIMEOUT_S = 600
 
@@ -122,6 +122,8 @@ NOMES = list(CONSULTAS)
 def validar(df: pd.DataFrame, chave: list[str]) -> None:
     if df.empty:
         raise ValueError("consulta voltou vazia")
+    # código IBGE de município sempre tem 7 dígitos -- se vier diferente, a query trouxe outra coisa
+    # (UF, região, etc) e o merge lá na frente ia silenciosamente não casar nada
     if (df["id_municipio"].astype(str).str.len() != 7).any():
         raise ValueError("id_municipio precisa ter 7 dígitos (código IBGE)")
     if df.duplicated(chave).any():
@@ -129,6 +131,8 @@ def validar(df: pd.DataFrame, chave: list[str]) -> None:
 
 
 def registrar_metadados(destino: Path, nome: str, resumo: dict) -> None:
+    # arquivo único acumulando todas as fontes -- lê o que já existe e só atualiza a chave desta fonte,
+    # senão cada extração ia sobrescrever o histórico das outras
     meta_path = Path(destino) / "_metadados.json"
     metadados = json.loads(meta_path.read_text(encoding="utf-8")) if meta_path.exists() else {}
     metadados[nome] = {**resumo, "extraido_em": datetime.now(timezone.utc).isoformat(timespec="seconds")}
@@ -153,7 +157,7 @@ def main(argv=None) -> None:
     ap.add_argument("--destino", default=Path(__file__).resolve().parents[1] / "data" / "external")
     args = ap.parse_args(argv)
 
-    from google.cloud import bigquery
+    from google.cloud import bigquery  # import tardio: só quem vai reextrair precisa da lib e da credencial GCP
     client = bigquery.Client(project=os.environ["GCP_PROJECT_ID"])
 
     for nome in args.nomes:

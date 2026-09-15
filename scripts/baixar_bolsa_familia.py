@@ -34,6 +34,8 @@ def mapa_codigos(diretorios: pd.DataFrame) -> dict[int, int]:
 
 
 def processar(bruto: pd.DataFrame, ano: int, mapa: dict[int, int]) -> pd.DataFrame:
+    # o arquivo bruto vem com todos os meses do ano; fica só com dezembro pra ter uma foto
+    # fim de ano consistente e comparável entre os anos (anomes_s tipo 202312)
     dez = bruto[bruto["anomes_s"] == ano * 100 + 12]
     if dez.empty:
         raise ValueError(f"não há dezembro de {ano} no arquivo")
@@ -44,6 +46,8 @@ def processar(bruto: pd.DataFrame, ano: int, mapa: dict[int, int]) -> pd.DataFra
     })
     sem_match = out["id_municipio"].isna()
     if sem_match.any():
+        # loga em vez de quebrar: alguns poucos códigos sem par de 7 dígitos são esperados,
+        # mas o aviso deixa rastro de quais municípios ficaram de fora
         print(f"  aviso: {int(sem_match.sum())} código(s) sem correspondência de 7 dígitos descartado(s): "
               f"{sorted(dez.loc[sem_match.values, 'codigo_ibge'].tolist())}")
     out = out[~sem_match]
@@ -52,6 +56,7 @@ def processar(bruto: pd.DataFrame, ano: int, mapa: dict[int, int]) -> pd.DataFra
         print(f"  aviso: {int(sem_valor.sum())} município(s) sem nenhum valor descartado(s): "
               f"{sorted(out.loc[sem_valor, 'id_municipio'].astype(int).tolist())}")
     out = out[~sem_valor]
+    # Int64 (maiúsculo, nullable) porque ainda pode sobrar NaN pontual numa das colunas de contagem
     out = out.astype({"id_municipio": "int64", "ano": "int64", **{c: "Int64" for c in COLUNAS.values()}})
     return out.reset_index(drop=True)
 
@@ -72,6 +77,8 @@ def main(argv=None) -> None:
         bruto = pd.read_csv(Path(args.origem) / ARQUIVO.format(ano=ano))
         parte = processar(bruto, ano, mapa)
         if len(parte) < MINIMO_MUNICIPIOS:
+            # trava de sanidade: o brasil tem ~5570 municípios, se vier bem menos que isso
+            # é sinal de arquivo errado ou baixado pela metade, não é só "alguns descartados"
             raise ValueError(f"{ano}: só {len(parte)} municípios em dezembro, esperava >= {MINIMO_MUNICIPIOS}")
         partes.append(parte)
         print(f"{ano}: {len(parte):,} municípios")

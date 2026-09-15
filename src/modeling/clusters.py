@@ -34,6 +34,8 @@ def build_cluster_pipeline(k: int, seed: int = config.SEED) -> Pipeline:
 def avaliar_k(X: pd.DataFrame, ks=range(2, 9), seed: int = config.SEED) -> pd.DataFrame:
     prep = Pipeline([("imp", SimpleImputer(strategy="median")), ("sc", StandardScaler())])
     Xt = prep.fit_transform(X)
+    # silhouette_score é O(n²), calcular com todos os municípios ficaria lento à toa --
+    # amostra de 5000 já dá uma estimativa estável o suficiente pra escolher o k
     amostra = np.random.default_rng(seed).choice(len(Xt), size=min(5000, len(Xt)), replace=False)
     linhas = []
     for k in ks:
@@ -62,6 +64,7 @@ def perfis(X: pd.DataFrame, ids: pd.DataFrame, labels) -> pd.DataFrame:
     out = pd.DataFrame({
         "n": g.size(), "taxa_media": g["taxa_alfabetizacao"].mean(),
         "criancas_nao_alfabetizadas": g["criancas_nao_alfabetizadas"].sum(),
+        # região mais comum em cada cluster, só pra ajudar a interpretar o cluster (não entra no modelo)
         "regiao_dominante": g["regiao"].agg(lambda s: s.value_counts().index[0]),
         "pct_regiao_dominante": g["regiao"].agg(lambda s: s.value_counts(normalize=True).iloc[0]),
     })
@@ -78,7 +81,7 @@ def main(argv=None) -> None:
     config.REPORTS.mkdir(parents=True, exist_ok=True)
     aval = avaliar_k(X)
     aval.to_csv(config.REPORTS / "avaliacao_k.csv", index=False)
-    k = args.k or int(aval.loc[aval["silhueta"].idxmax(), "k"])
+    k = args.k or int(aval.loc[aval["silhueta"].idxmax(), "k"])  # sem --k, deixa a silhueta escolher o melhor
 
     fig, (a1, a2) = plots.plt.subplots(1, 2, figsize=(10, 4))
     a1.plot(aval["k"], aval["inercia"], "o-"); a1.set(title="Cotovelo", xlabel="k", ylabel="inércia")

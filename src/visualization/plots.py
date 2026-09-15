@@ -2,7 +2,7 @@
 from pathlib import Path
 
 import matplotlib
-matplotlib.use("Agg")
+matplotlib.use("Agg")  # sem isso quebra rodando sem tela (CI, terminal) tentando abrir uma janela
 import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np  # noqa: E402
 import pandas as pd  # noqa: E402
@@ -30,7 +30,7 @@ def salvar(fig, nome: str) -> Path:
     config.IMAGES.mkdir(parents=True, exist_ok=True)
     caminho = config.IMAGES / f"{nome}.png"
     fig.savefig(caminho, dpi=150, bbox_inches="tight")
-    plt.close(fig)
+    plt.close(fig)  # fecha a figura pra não acumular memória quando gera muitos gráficos em sequência
     return caminho
 
 
@@ -38,6 +38,7 @@ def plot_roc_pr(curvas: dict) -> plt.Figure:
     fig, (a1, a2) = plt.subplots(1, 2, figsize=(11, 4.5))
     for nome, (y, proba) in curvas.items():
         RocCurveDisplay.from_predictions(y, proba, name=nome, ax=a1)
+        # inverte y e proba pro precision-recall focar na classe não alfabetizado, igual no metrics.py
         PrecisionRecallDisplay.from_predictions(1 - np.asarray(y), 1 - np.asarray(proba), name=nome, ax=a2)
     a1.plot([0, 1], [0, 1], "k--", lw=0.8)
     a1.set_title("ROC (alfabetizado)")
@@ -155,6 +156,8 @@ def plot_ranking_risco(df: pd.DataFrame, top: int = 20) -> plt.Figure:
     d = df.head(top).iloc[::-1]
     fig, ax = plt.subplots(figsize=(9, 0.35 * len(d) + 1))
     ax.barh(d["nome_municipio"] + " (" + d["sigla_uf"] + ")", d["criancas_nao_alfabetizadas_2024"], color=COR_NAO_ALF)
+    # escreve a probabilidade de não bater a meta na ponta de cada barra, só pra dar o contexto
+    # de risco junto do volume (a barra sozinha só mostra o tamanho, não o risco)
     for i, (n, p) in enumerate(zip(d["criancas_nao_alfabetizadas_2024"], d["prob_nao_atingir_2025"])):
         ax.text(n, i, f" {p:.0%}", va="center", fontsize=8)
     ax.set(title="Maior risco de não atingir a meta 2025 × crianças não alfabetizadas", xlabel="crianças não alfabetizadas (2024)")

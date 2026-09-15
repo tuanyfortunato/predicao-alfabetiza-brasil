@@ -15,6 +15,7 @@ def carregar_metas() -> pd.DataFrame:
 def carregar_externa(nome: str) -> pd.DataFrame:
     caminho = config.EXTERNAL / f"{nome}.parquet"
     if not caminho.exists():
+        # mensagem de erro já manda o comando certo pra rodar -- economiza um "cadê isso" no chat
         script = "baixar_bolsa_familia" if nome == "bolsa_familia_municipio" else "extrair_externas"
         raise FileNotFoundError(
             f"fonte externa {nome} não encontrada em {caminho}; rode python -m scripts.{script}"
@@ -28,5 +29,6 @@ def carregar_alunos(ano: int | None = None, apenas_com_nota: bool = True) -> pd.
     # a partição vem como category; int evita surpresa em groupby e merge
     df["ano"] = df["ano"].astype("int64")
     if apenas_com_nota:
+        # esse é o universo alvo do projeto: só quem fez a prova e tem nota conta pro alfabetizado
         df = df[df["presente"] & ~df["sem_nota"]]
     return df.reset_index(drop=True)

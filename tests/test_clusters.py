@@ -33,3 +33,14 @@ def test_cli(lake_tmp):
     clusters.main(["--k", "3"])
     assert (config.REPORTS / "perfis_clusters.csv").exists() and (config.IMAGES / "clusters_pca.png").exists()
     assert len(pd.read_csv(config.REPORTS / "clusters_municipios.csv")) == 200
+
+
+def test_cli_sem_k_usa_selecao_automatica(lake_tmp):
+    # sem --k, main() deve cair no ramo `k = args.k or int(aval.loc[aval["silhueta"].idxmax(), "k"])`
+    config.PROCESSED.mkdir(exist_ok=True)
+    montar_base_municipio_sintetica().to_parquet(config.PROCESSED / "base_modelagem_municipio.parquet")
+    clusters.main([])
+    assert (config.REPORTS / "avaliacao_k.csv").exists()
+    perfis = pd.read_csv(config.REPORTS / "perfis_clusters.csv")
+    assert len(perfis) >= 2
+    assert len(pd.read_csv(config.REPORTS / "clusters_municipios.csv")) == 200

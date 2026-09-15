@@ -38,6 +38,8 @@ def contexto_escola_loo(alunos: pd.DataFrame) -> pd.DataFrame:
     n = g["proficiencia"].transform("count")
     soma_prof = g["proficiencia"].transform("sum")
     soma_alf = g["alfabetizado"].transform("sum")
+    # tira o próprio aluno da soma da escola dele -- é isso que faz o leave-one-out
+    # (sem isso a nota do aluno vazaria pra dentro da própria feature que descreve a escola)
     n_outros = n - 1
     with np.errstate(divide="ignore", invalid="ignore"):
         out = pd.DataFrame({
@@ -45,13 +47,17 @@ def contexto_escola_loo(alunos: pd.DataFrame) -> pd.DataFrame:
             "prof_media_escola_loo": (soma_prof - alunos["proficiencia"]) / n_outros,
             "n_alunos_escola": n_outros,
         }, index=alunos.index)
+    # escola com só 1 aluno avaliado: n_outros=0, divisão dá inf/nan -- força NaN mesmo
     out.loc[n_outros == 0, ["taxa_escola_loo", "prof_media_escola_loo"]] = np.nan
     return out
 
 
 def participacao_escola_loo(alunos: pd.DataFrame, perfil_escola: pd.DataFrame) -> pd.Series:
+    # assume que "alunos" é sempre um único ano (é como o resto do pipeline chama isso) --
+    # pega o ano da primeira linha porque não faz sentido misturar anos aqui
     ano = int(alunos["ano"].iloc[0])
     p = perfil_escola.loc[perfil_escola["ano"] == ano].set_index("id_escola")
+    # mesma lógica do loo de cima: tira o próprio aluno da contagem da escola antes de dividir
     aval = alunos["id_escola"].map(p["alunos_avaliados"]) - 1
     pres = alunos["id_escola"].map(p["alunos_presentes"]) - 1
     return (pres / aval.replace(0, np.nan)).rename("taxa_participacao_escola_loo")

@@ -36,8 +36,18 @@ def test_ranking_2025():
     assert rank["prob_nao_atingir_2025"].between(0, 1).all()
     assert rank["taxa_prevista_2025"].between(0, 100).all()
     assert rank["prioridade"].is_monotonic_decreasing
-    assert np.allclose(rank["gap_previsto_2025"], rank["taxa_prevista_2025"] - rank["meta_2025"])
-    assert rank["meta_2025"].eq(0.65).all()
+    assert np.allclose(rank["gap_previsto_2025"], rank["taxa_prevista_2025"] - rank["meta_2025"], equal_nan=True)
+    assert rank.loc[rank["meta_2025"].notna(), "meta_2025"].eq(0.65).all()
+
+    # municípios sem meta pactuada para 2025 continuam no ranking (não são excluídos), mas com
+    # gap/acima_da_margem não computáveis; o classificador ainda roda normalmente sobre eles.
+    sem_meta = rank[rank["id_municipio"] < 1100000 + 10]
+    assert len(sem_meta) == 10
+    assert sem_meta["meta_2025"].isna().all()
+    assert sem_meta["gap_previsto_2025"].isna().all()
+    assert (~sem_meta["acima_da_margem"]).all()
+    assert sem_meta["prob_nao_atingir_2025"].between(0, 1).all()
+    assert sem_meta["prob_nao_atingir_2025"].notna().all()
 
 
 def test_cli(lake_tmp):
