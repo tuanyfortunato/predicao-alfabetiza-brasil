@@ -1,3 +1,4 @@
+import pandas as pd
 import pytest
 
 from src import config
@@ -32,3 +33,14 @@ def test_separar_xy_devolve_x_limpo_grupos_e_pesos():
     assert grupos.name == "id_escola" and pesos.name == "peso_aluno"
     assert X["sem_historico"].dtype == "float64" and X["matriculas_ai"].dtype == "float64"
     assert len(X) == len(y) == len(grupos) == len(pesos) == 20
+
+
+def test_correlacao_alta_e_vif():
+    import numpy as np
+    rng = np.random.default_rng(0)
+    a = rng.normal(size=200)
+    df = pd.DataFrame({"a": a, "b": a * 2 + rng.normal(scale=0.01, size=200), "c": rng.normal(size=200)})
+    pares = features.correlacao_alta(df, limite=0.95)
+    assert list(pares.columns) == ["a", "b", "rho"] and len(pares) == 1 and set(pares.iloc[0][["a", "b"]]) == {"a", "b"}
+    vif = features.calcular_vif(df)
+    assert list(vif.columns) == ["feature", "vif"] and vif.set_index("feature").loc["a", "vif"] > 10 > vif.set_index("feature").loc["c", "vif"]

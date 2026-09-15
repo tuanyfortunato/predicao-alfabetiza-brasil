@@ -1,4 +1,5 @@
 """Quais colunas entram no modelo, por regime, e a guarda contra vazamento."""
+import numpy as np
 import pandas as pd
 
 from src import config
@@ -37,3 +38,26 @@ def separar_xy(df: pd.DataFrame, regime: str):
     X = df[num + cat].copy()
     X[num] = X[num].astype("float64")
     return X, df[ALVO].astype(int), df["id_escola"], df["peso_aluno"]
+
+
+def correlacao_alta(df: pd.DataFrame, limite: float = 0.95) -> pd.DataFrame:
+    corr = df.corr(numeric_only=True).abs()
+    pares = corr.where(np.triu(np.ones(corr.shape, dtype=bool), k=1)).stack()
+    out = pares[pares > limite].reset_index()
+    out.columns = ["a", "b", "rho"]
+    return out.sort_values("rho", ascending=False).reset_index(drop=True)
+
+
+def calcular_vif(df: pd.DataFrame) -> pd.DataFrame:
+    # colunas quase vazias (ex.: pct_va_* e projecao_ideb_ai, 100% NaN no alvo 2024) derrubariam todas as linhas no dropna
+    X = df.select_dtypes("number")
+    X = X.loc[:, X.notna().mean() > 0.5].dropna()
+    X = X.loc[:, X.std() > 0]
+    linhas = []
+    for c in X.columns:
+        y = X[c].to_numpy()
+        A = np.column_stack([np.ones(len(X)), X.drop(columns=c).to_numpy()])
+        residuo = y - A @ np.linalg.lstsq(A, y, rcond=None)[0]
+        r2 = 1 - residuo.var() / y.var()
+        linhas.append({"feature": c, "vif": float(1 / max(1 - r2, 1e-12))})
+    return pd.DataFrame(linhas).sort_values("vif", ascending=False).reset_index(drop=True)
