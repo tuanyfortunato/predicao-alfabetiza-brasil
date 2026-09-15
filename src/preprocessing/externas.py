@@ -23,6 +23,8 @@ SETORES = ["agropecuaria", "industria", "servicos", "adespss"]
 
 
 def ano_referencia(fonte: str, ano: int, anos_disponiveis) -> int:
+    # pega o ano mais recente que ainda respeita a defasagem da fonte -- é isso que
+    # garante que a feature de 2024 só usa dado que já existia antes da prova
     limite = ano - DEFASAGEM[fonte]
     candidatos = [int(a) for a in pd.unique(pd.Series(anos_disponiveis)) if a <= limite]
     if not candidatos:
@@ -50,6 +52,7 @@ def montar_contexto_externo(ano: int, fontes: dict | None = None) -> pd.DataFram
 
     ctx = fontes["diretorios_municipio"].copy()
 
+    # censo2022 é estrutural (não tem "ano"), por isso não passa pelo ano_referencia -- usa direto
     c22 = fontes["censo2022_municipio"].rename(columns={"populacao": "pop_2022", "domicilios": "domicilios_2022", "area": "area_km2"})
     c22["densidade_demografica"] = c22["pop_2022"] / c22["area_km2"]
     c22["pct_pop_indigena"] = c22["populacao_indigena"] / c22["pop_2022"]

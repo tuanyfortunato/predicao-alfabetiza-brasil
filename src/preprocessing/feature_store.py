@@ -27,10 +27,13 @@ def montar_base_aluno(ano_alvo: int = config.ANO_ALVO) -> pd.DataFrame:
     alunos = alunos[alunos["rede_nome"].isin(REDES_PUBLICAS)].reset_index(drop=True)
     perfil = carregar_gold("perfil_escola")
 
+    # concat por posição funciona pq as três séries vêm do mesmo alunos.reset_index(drop=True) acima --
+    # nenhuma reordena nem filtra linha, só adicionam colunas
     base = pd.concat([alunos, contexto_escola_loo(alunos), participacao_escola_loo(alunos, perfil)], axis=1)
 
     ctx = contexto_municipal_defasado(ano_alvo, carregar_gold("indicador_municipio"), carregar_gold("distribuicao_proficiencia"))
     base = base.merge(ctx, on="id_municipio", how="left")
+    # município novo na base ou sem prova em t-1 fica sem contexto municipal -- marca em vez de esconder o NaN
     base["sem_historico"] = base["taxa_alfabetizacao_mun_t1"].isna()
 
     base = base.merge(meta_pactuada(ano_alvo, carregar_metas()), on="id_municipio", how="left")
@@ -50,6 +53,7 @@ def _municipio_no_ano(ano: int) -> pd.DataFrame:
     df = df.merge(evo[["id_municipio", "taxa_participacao", "proficiencia_media", "criancas_nao_alfabetizadas"]], on="id_municipio", how="left")
     df = df.merge(dist[["id_municipio"] + COLS_DISTRIBUICAO], on="id_municipio", how="left")
     df = df.merge(montar_contexto_externo(ano).drop(columns=COLS_EXTERNAS_REPETIDAS), on="id_municipio", how="left")
+    # já traz a meta do ano seguinte junto (meta_prox) -- é contra ela que o modelo B mede "atingiu ou não"
     df = df.merge(meta_pactuada(ano + 1, carregar_metas()).rename(columns={"meta_alvo": "meta_prox"}), on="id_municipio", how="left")
     df.insert(0, "ano", ano)
     return df
@@ -57,10 +61,14 @@ def _municipio_no_ano(ano: int) -> pd.DataFrame:
 
 def montar_base_municipio(anos=(2023, 2024)) -> pd.DataFrame:
     base = pd.concat([_municipio_no_ano(a) for a in anos], ignore_index=True)
+    # aqui é o truque pra montar o alvo do modelo B: pega o resultado do ano seguinte
+    # e "puxa" pra trás um ano, então a linha de 2023 fica com o alvo (taxa/meta) de 2024
     prox = base[["ano", "id_municipio", "taxa_alfabetizacao", "situacao_meta"]].copy()
     prox["ano"] = prox["ano"] - 1
     prox = prox.rename(columns={"taxa_alfabetizacao": "taxa_prox", "situacao_meta": "situacao_meta_prox"})
     base = base.merge(prox, on=["ano", "id_municipio"], how="left")
+    # situacao_meta_prox vem como string (nao_atingiu/atingiu/indistinguivel); aqui vira alvo binário
+    # e fica NaN quando não dá pra saber ainda (ex.: 2024 não tem "próximo ano" na base)
     base["nao_atingiu_prox"] = np.where(base["situacao_meta_prox"].isna(), np.nan,
                                         (base["situacao_meta_prox"] == "nao_atingiu").astype(float))
     return base

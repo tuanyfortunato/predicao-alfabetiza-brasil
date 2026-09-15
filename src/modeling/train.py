@@ -30,6 +30,7 @@ def treinar(base: pd.DataFrame, regime: str, modelo: str = "hgb", seed: int = co
     pipe.fit(X.iloc[tr], y.iloc[tr])
 
     proba_va = pipe.predict_proba(X.iloc[va])[:, 1]
+    # limiar escolhido na validação (nunca no teste) pra não vazar informação do teste na decisão de corte
     limiar = escolher_limiar(y.iloc[va], proba_va, recall_minimo)
 
     proba_te = pipe.predict_proba(X.iloc[te])[:, 1]
@@ -37,6 +38,8 @@ def treinar(base: pd.DataFrame, regime: str, modelo: str = "hgb", seed: int = co
 
     cv = None
     if cv_municipio:
+        # cv extra opcional, agrupado por município (não por escola) -- serve pra ver se o modelo
+        # generaliza entre municípios diferentes, é mais caro então só roda se pedir
         scores = cross_val_score(build_pipeline(modelo, num, cat, seed=seed, params=params), X.iloc[tr], y.iloc[tr],
                                  groups=base["id_municipio"].iloc[tr], cv=GroupKFold(n_splits=5), scoring="roc_auc")
         cv = {"roc_auc_media": float(scores.mean()), "roc_auc_dp": float(scores.std())}
@@ -68,6 +71,8 @@ def salvar(resultado: dict, base: pd.DataFrame) -> dict[str, Path]:
         "metricas": config.REPORTS / f"metricas_{nome}.json",
     }
     joblib.dump(resultado["pipeline"], caminhos["modelo"])
+    # grava quem ficou em cada partição (por id_aluno) pra dar pra reproduzir o teste depois
+    # sem ter que rodar o split de novo -- é o que o predict.py usa com --so-teste
     partes = pd.concat([pd.DataFrame({"id_aluno": base["id_aluno"].iloc[pos].to_numpy(), "parte": nome_parte})
                         for nome_parte, pos in resultado["partes"].items()], ignore_index=True)
     partes.to_parquet(caminhos["particao"], index=False)
@@ -76,6 +81,8 @@ def salvar(resultado: dict, base: pd.DataFrame) -> dict[str, Path]:
 
 
 def _amostrar_escolas(base: pd.DataFrame, n_escolas: int, seed: int) -> pd.DataFrame:
+    # amostra escola inteira, nunca aluno solto -- senão quebraria a mesma regra de não misturar
+    # escola entre partes que o dividir_por_escola garante. só serve pra rodar rápido em dev
     rng = np.random.default_rng(seed)
     escolhidas = rng.choice(base["id_escola"].unique(), size=n_escolas, replace=False)
     return base[base["id_escola"].isin(escolhidas)].reset_index(drop=True)

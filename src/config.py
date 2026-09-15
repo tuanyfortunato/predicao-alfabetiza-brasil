@@ -12,7 +12,7 @@ REPORTS = RAIZ / "reports"
 IMAGES = RAIZ / "images"
 
 SEED = 42
-CORTE_ALFABETIZACAO = 743
+CORTE_ALFABETIZACAO = 743  # ponto de corte oficial do Saeb 2º ano (Compromisso Nacional Criança Alfabetizada), não é escolha nossa
 ANO_ALVO = 2024
 
 # nunca podem entrar como feature: definem o alvo, a presença na prova,

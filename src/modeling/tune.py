@@ -31,6 +31,9 @@ ESPACOS = {
 def amostrar_por_escola(base: pd.DataFrame, n_alunos: int, seed: int = config.SEED) -> pd.DataFrame:
     if n_alunos >= len(base):
         return base
+    # embaralha as escolas e vai empilhando até chegar perto de n_alunos -- de novo, escola
+    # inteira ou nada, então o resultado passa um pouco de n_alunos (a busca de hiperparâmetro
+    # não precisa ser no tamanho exato, só rápida o bastante)
     rng = np.random.default_rng(seed)
     tamanhos = base.groupby("id_escola").size()
     ordem = rng.permutation(tamanhos.index.to_numpy())
@@ -42,6 +45,7 @@ def amostrar_por_escola(base: pd.DataFrame, n_alunos: int, seed: int = config.SE
 
 
 def _nativo(v):
+    # best_params_ vem com tipos numpy (np.float64 etc) que o json.dumps não serializa -- converte pro tipo python puro
     return v.item() if isinstance(v, np.generic) else v
 
 
@@ -52,6 +56,8 @@ def buscar(base: pd.DataFrame, regime: str, modelo: str = "hgb", n_amostra: int 
     num, cat = colunas_por_regime(amostra, regime)
     busca = HalvingRandomSearchCV(
         build_pipeline(modelo, num, cat, seed=seed), ESPACOS[modelo],
+        # refit=False porque quem treina o modelo final na base inteira é o train.py com --params;
+        # aqui só interessa achar os melhores hiperparâmetros, não guardar esse pipeline treinado na amostra
         n_candidates=n_candidatos, factor=3, cv=cv_por_grupo(5, seed), scoring="roc_auc",
         random_state=seed, n_jobs=-1, refit=False, verbose=1,
     )

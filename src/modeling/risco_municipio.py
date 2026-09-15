@@ -39,6 +39,7 @@ def colunas_b(base: pd.DataFrame) -> tuple[list[str], list[str]]:
 
 
 def preparar_treino(base: pd.DataFrame, ano: int = 2023):
+    # só treina com município que tem os dois lados: resultado do ano base e o do ano seguinte (o alvo)
     t = base[(base["ano"] == ano) & base["taxa_prox"].notna() & base["taxa_alfabetizacao"].notna()].reset_index(drop=True)
     num, cat = colunas_b(t)
     X = t[num + cat].copy()
@@ -59,13 +60,15 @@ def _resumir(nome, tarefa, cv, mapa):
 
 def avaliar(X: pd.DataFrame, y_reg: pd.Series, y_clf: pd.Series, seed: int = config.SEED) -> pd.DataFrame:
     cv = RepeatedKFold(n_splits=5, n_repeats=3, random_state=seed)
+    # "persistência" é o baseline ingênuo: chuta que a taxa do ano seguinte vai ser igual à de agora.
+    # se o modelo não bater isso, não vale o esforço
     linhas = [{"modelo": "persistencia", "tarefa": "regressao", "metrica": "mae",
                "media": float(mean_absolute_error(y_reg, X["taxa_alfabetizacao"])), "dp": 0.0}]
     for nome, est in [("ridge", Ridge(alpha=1.0)),
                       ("hgb_reg", HistGradientBoostingRegressor(random_state=seed, max_iter=300, learning_rate=0.05))]:
         r = cross_validate(_pipe(est, X), X, y_reg, cv=cv, scoring=METRICAS_REG, n_jobs=-1)
         linhas += _resumir(nome, "regressao", r, METRICAS_REG)
-    com_meta = y_clf.notna()
+    com_meta = y_clf.notna()  # nem todo município tem meta pactuada -- classificação só roda em quem tem
     for nome, est in [("logistica", LogisticRegression(max_iter=1000)),
                       ("hgb_clf", HistGradientBoostingClassifier(random_state=seed, max_iter=300, learning_rate=0.05))]:
         r = cross_validate(_pipe(est, X), X[com_meta], y_clf[com_meta].astype(int), cv=cv, scoring=METRICAS_CLF, n_jobs=-1)
@@ -94,7 +97,11 @@ def gerar_ranking(base: pd.DataFrame, pipe_reg, pipe_clf, ano_aplicacao: int = 2
         f"prob_nao_atingir_{p}": pipe_clf.predict_proba(X)[:, 1],
     })
     out[f"gap_previsto_{p}"] = out[f"taxa_prevista_{p}"] - out[f"meta_{p}"]
+    # "acima da margem" = o gap previsto é pior que o intervalo de confiança do resultado atual --
+    # ou seja, não é só ruído da medição, dá pra dizer que o município provavelmente vai errar a meta
     out["acima_da_margem"] = out[f"gap_previsto_{p}"] < -out[f"ic95_{ano_aplicacao}"]
+    # prioridade pondera risco por volume: um município com prob alta mas poucas crianças
+    # não alfabetizadas importa menos pra política pública do que um grande com risco moderado
     out["prioridade"] = out[f"prob_nao_atingir_{p}"] * out[f"criancas_nao_alfabetizadas_{ano_aplicacao}"]
     return out.sort_values("prioridade", ascending=False).reset_index(drop=True)
 
